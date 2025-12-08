@@ -1,9 +1,8 @@
-import os
 import sys
 import platform
-import time  # <--- Added this back so History works!
 
 # --- 1. AUTO-DETECT ENVIRONMENT ---
+# Check if we are in Termux (Android)
 if "com.termux" in os.environ.get("PREFIX", ""):
     DEVICE_NAME = "Pixel 8a (Mobile)"
     ROOT_DIR = "/storage/emulated/0/pixel8a/unexusi/"
@@ -44,18 +43,21 @@ def setup_alias():
     bashrc_path = os.path.expanduser("~/.bashrc")
     script_path = os.path.abspath(__file__)
     
+    # The exact line we want to add
     alias_cmd = f'alias fleet="python {script_path}"'
     
     print(f"\n🛠️  Configuring Alias for {DEVICE_NAME}...")
     
+    # Check if already exists
     try:
         with open(bashrc_path, "r") as f:
             if alias_cmd in f.read():
                 print("   ✅ 'fleet' alias is already active!")
                 return
     except FileNotFoundError:
-        pass 
+        pass # File doesn't exist yet, we will create it
         
+    # Append to file
     with open(bashrc_path, "a") as f:
         f.write(f"\n{alias_cmd}\n")
     
@@ -86,14 +88,17 @@ def get_git_status(repo_path):
             "branch": "unknown"
         }
         
+        # Get Branch
         try:
             status["branch"] = repo.active_branch.name
         except:
             status["branch"] = "DETACHED"
 
+        # 1. Check Local Dirty
         if repo.is_dirty(untracked_files=True):
             status["dirty"] = True
 
+        # 2. Check Sync (Fetch hiddenly)
         try:
             origin = repo.remotes.origin
             origin.fetch()
@@ -109,29 +114,15 @@ def get_git_status(repo_path):
     except:
         return None
 
-def show_git_log(repo_path):
-    """Shows the last 5 commits (Time Travel View)"""
-    try:
-        repo = Repo(repo_path)
-        print(f"\n   📜 History for {os.path.basename(repo_path)}:")
-        
-        # Get last 5 commits
-        commits = list(repo.iter_commits('master', max_count=5))
-        
-        for commit in commits:
-            commit_date = time.strftime("%Y-%m-%d %H:%M", time.localtime(commit.committed_date))
-            print(f"      🔹 [{commit_date}] {commit.message.strip()} ({commit.author.name})")
-            
-    except Exception as e:
-        print(f"      ❌ Could not read history: {e}")
-
 def show_file_details(repo):
     """Lists specifically which files are changed"""
     print(f"\n   📄 File Status for [{os.path.basename(repo.working_dir)}]:")
     
+    # Changed files
     for item in repo.index.diff(None):
         print(f"      ✏️  Modified: {item.a_path}")
         
+    # Untracked files
     for item in repo.untracked_files:
         print(f"      🆕 New File: {item}")
         
@@ -142,12 +133,14 @@ def sync_repo(repo_data, auto_message="Auto-sync via Fleet Commander"):
     print(f"   ⚙️  Processing: {repo_data['name']}...")
     repo = repo_data['repo']
     
+    # Save
     if repo_data['dirty']:
-        show_file_details(repo) 
+        show_file_details(repo) # Show what we are committing
         repo.git.add(all=True)
         repo.index.commit(auto_message)
         print("      ✅ Local changes saved.")
     
+    # Push/Pull
     try:
         origin = repo.remotes.origin
         if repo_data['behind'] > 0:
@@ -178,7 +171,7 @@ def main_dashboard():
         # SCAN
         try:
             if os.path.exists(ROOT_DIR):
-                folder_list = sorted(os.listdir(ROOT_DIR))
+                folder_list = sorted(os.listdir(ROOT_DIR)) # Sort alphabetically
                 for folder_name in folder_list:
                     folder_path = os.path.join(ROOT_DIR, folder_name)
                     if os.path.isdir(folder_path) and os.path.isdir(os.path.join(folder_path, ".git")):
@@ -186,6 +179,7 @@ def main_dashboard():
                         if stat:
                             repos_found.append(stat)
                             
+                            # Status Logic
                             icon = "✅"
                             msg = "Synced"
                             if stat["dirty"]:
@@ -208,7 +202,6 @@ def main_dashboard():
         print("\n-------------------------------------------")
         print(" A. Sync ALL repositories")
         print(" S. Setup Tools (Alias & .gitignore)")
-        print(" L. View History (Time Travel)")
         print(" R. Refresh")
         print(" Q. Quit")
         
@@ -231,12 +224,6 @@ def main_dashboard():
                 if 0 <= idx < len(repos_found):
                     create_gitignore(repos_found[idx]['path'])
                 input("   Press Enter...")
-        
-        elif choice == 'l':
-            idx = int(input(f"   Repo Number (1-{len(repos_found)}): ")) - 1
-            if 0 <= idx < len(repos_found):
-                show_git_log(repos_found[idx]['path'])
-            input("   Press Enter...")
 
         elif choice == 'a':
             print("\n🚀 STARTING BATCH SYNC...")
@@ -258,4 +245,39 @@ def main_dashboard():
                 input("\nDone. Press Enter...")
 
 if __name__ == "__main__":
+#adding history opption
+def show_git_log(repo_path):
+    """Shows the last 5 commits (Time Travel View)"""
+    try:
+        repo = Repo(repo_path)
+        print(f"\n   📜 History for {os.path.basename(repo_path)}:")
+        
+        # Get last 5 commits
+        commits = list(repo.iter_commits('master', max_count=5))
+        
+        for commit in commits:
+            # Format time (e.g., "2 days ago" or date)
+            commit_date = time.strftime("%Y-%m-%d %H:%M", time.localtime(commit.committed_date))
+            print(f"      🔹 [{commit_date}] {commit.message.strip()} ({commit.author.name})")
+            
+    except Exception as e:
+        print(f"      ❌ Could not read history: {e}")
+#adding L option
+# ... inside main_dashboard loop ...
+        print(" A. Sync ALL repositories")
+        print(" S. Setup Tools")
+        print(" L. View History (Time Travel)")  # <--- NEW
+        print(" R. Refresh")
+        print(" Q. Quit")
+        
+        choice = input("\nCommand >> ").lower()
+        
+        # ... existing checks ...
+        
+        elif choice == 'l':  # <--- NEW BLOCK
+            idx = int(input(f"   Repo Number (1-{len(repos_found)}): ")) - 1
+            if 0 <= idx < len(repos_found):
+                show_git_log(repos_found[idx]['path'])
+            input("   Press Enter...")
+
     main_dashboard()
