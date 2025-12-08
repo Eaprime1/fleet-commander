@@ -109,14 +109,21 @@ def get_git_status(repo_path):
     except:
         return None
 
+
 def show_git_log(repo_path):
     """Shows the last 5 commits (Time Travel View)"""
     try:
         repo = Repo(repo_path)
-        print(f"\n   📜 History for {os.path.basename(repo_path)}:")
+        # Get the name of the current branch for display
+        try:
+            branch_name = repo.active_branch.name
+        except:
+            branch_name = "HEAD"
+            
+        print(f"\n   📜 History for {os.path.basename(repo_path)} [{branch_name}]:")
         
-        # Get last 5 commits
-        commits = list(repo.iter_commits('master', max_count=5))
+        # FIX: Removed 'master'. Now defaults to the current active branch.
+        commits = list(repo.iter_commits(max_count=5))
         
         for commit in commits:
             commit_date = time.strftime("%Y-%m-%d %H:%M", time.localtime(commit.committed_date))
@@ -124,7 +131,6 @@ def show_git_log(repo_path):
             
     except Exception as e:
         print(f"      ❌ Could not read history: {e}")
-
 def show_file_details(repo):
     """Lists specifically which files are changed"""
     print(f"\n   📄 File Status for [{os.path.basename(repo.working_dir)}]:")
