@@ -1,3 +1,20 @@
+def show_git_log(repo_path):
+    """Shows the last 5 commits (Time Travel View)"""
+    try:
+        repo = Repo(repo_path)
+        print(f"\n   📜 History for {os.path.basename(repo_path)}:")
+        
+        # Get last 5 commits
+        commits = list(repo.iter_commits('master', max_count=5))
+        
+        for commit in commits:
+            # Format time (e.g., "2 days ago" or date)
+            commit_date = time.strftime("%Y-%m-%d %H:%M", time.localtime(commit.committed_date))
+            print(f"      🔹 [{commit_date}] {commit.message.strip()} ({commit.author.name})")
+            
+    except Exception as e:
+        print(f"      ❌ Could not read history: {e}")
+
 import os
 import sys
 import platform
