@@ -5,7 +5,7 @@ def show_git_log(repo_path):
         print(f"\n   📜 History for {os.path.basename(repo_path)}:")
         
         # Get last 5 commits
-        commits = list(repo.iter_commits('master', max_count=5))
+        commits = list(repo.iter_commits('main', max_count=5))
         
         for commit in commits:
             # Format time (e.g., "2 days ago" or date)
