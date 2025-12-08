@@ -22,8 +22,8 @@ import platform
 # --- 1. AUTO-DETECT ENVIRONMENT ---
 # Check if we are in Termux (Android)
 if "com.termux" in os.environ.get("PREFIX", ""):
-    DEVICE_NAME = "Pixel 8a (Mobile)"
-    ROOT_DIR = "/storage/emulated/0/pixel8a/unexusi/"
+    DEVICE_NAME = "sauron (laptop)"
+    ROOT_DIR = "/storage/emulated/0/unexusi/"
 else:
     DEVICE_NAME = "Laptop (Base)"
     ROOT_DIR = "/home/sauron/unexusi/" 
