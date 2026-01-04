@@ -9,7 +9,7 @@ if "com.termux" in os.environ.get("PREFIX", ""):
     ROOT_DIR = "/storage/emulated/0/pixel8a/unexusi/"
 else:
     DEVICE_NAME = "Laptop (Base)"
-    ROOT_DIR = "/home/sauron/Qrunexusiam/" 
+    ROOT_DIR = "/home/sauron/Q/runexusiam/" 
 
 # --- IMPORTS ---
 try:
