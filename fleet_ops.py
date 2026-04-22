@@ -4,12 +4,27 @@ import platform
 import time  # <--- Added this back so History works!
 
 # --- 1. AUTO-DETECT ENVIRONMENT ---
+_is_proot = os.path.exists("/storage/emulated/0") and os.path.exists("/root/.claude")
+
 if "com.termux" in os.environ.get("PREFIX", ""):
-    DEVICE_NAME = "Pixel 8a (Mobile)"
+    DEVICE_NAME = "Pixel 8a (Termux/Native)"
     ROOT_DIR = "/storage/emulated/0/pixel8a/unexusi/"
+    SCAN_DIRS = [ROOT_DIR]
+elif _is_proot:
+    DEVICE_NAME = "Pixel 8a (PRoot-Distro)"
+    ROOT_DIR = "/root/PIXEL8/"
+    # Scan all immediate subdirs of PIXEL8 that are git repos
+    SCAN_DIRS = [
+        "/root/PIXEL8/",
+        "/root/PIXEL8/pixelshard/growing/",
+        "/root/PIXEL8/pixelshard/deployed/",
+    ]
+    # Root-level repos not under PIXEL8
+    EXTRA_REPOS = ["/root/UNEXUSI"]
 else:
     DEVICE_NAME = "Laptop (Base)"
-    ROOT_DIR = "/home/sauron/Q/runexusiam/" 
+    ROOT_DIR = "/home/sauron/Q/runexusiam/"
+    SCAN_DIRS = [ROOT_DIR]
 
 # --- IMPORTS ---
 try:
@@ -180,18 +195,25 @@ def main_dashboard():
         print(f"Scanning Sector: {ROOT_DIR}\n")
         
         repos_found = []
-        
-        # SCAN
-        try:
-            if os.path.exists(ROOT_DIR):
-                folder_list = sorted(os.listdir(ROOT_DIR))
+        seen_paths = set()
+
+        # SCAN all configured directories
+        for scan_dir in SCAN_DIRS:
+            try:
+                if not os.path.exists(scan_dir):
+                    continue
+                folder_list = sorted(os.listdir(scan_dir))
                 for folder_name in folder_list:
-                    folder_path = os.path.join(ROOT_DIR, folder_name)
+                    folder_path = os.path.join(scan_dir, folder_name)
+                    real_path = os.path.realpath(folder_path)
+                    if real_path in seen_paths:
+                        continue
                     if os.path.isdir(folder_path) and os.path.isdir(os.path.join(folder_path, ".git")):
                         stat = get_git_status(folder_path)
                         if stat:
+                            seen_paths.add(real_path)
                             repos_found.append(stat)
-                            
+
                             icon = "✅"
                             msg = "Synced"
                             if stat["dirty"]:
@@ -203,10 +225,10 @@ def main_dashboard():
                             elif stat["behind"] > 0:
                                 icon = "⬇️ "
                                 msg = f"Behind (-{stat['behind']})"
-                            
+
                             print(f" {len(repos_found)}. {icon} {stat['name']:<18} [{stat['branch']}] | {msg}")
-        except OSError as e:
-            print(f"❌ Error scanning: {e}")
+            except OSError as e:
+                print(f"❌ Error scanning {scan_dir}: {e}")
 
         if not repos_found:
             print(f"No repositories found in {ROOT_DIR}")
